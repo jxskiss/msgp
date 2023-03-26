@@ -40,6 +40,7 @@ var (
 	marshal    = flag.Bool("marshal", true, "create Marshal and Unmarshal methods")
 	tests      = flag.Bool("tests", true, "create tests and benchmarks")
 	unexported = flag.Bool("unexported", false, "also process unexported types")
+	useJSONTag = flag.Bool("use-json-tag", false, "use JSON tag if msgpack tag not available")
 	verbose    = flag.Bool("v", false, "verbose diagnostics")
 )
 
@@ -89,7 +90,7 @@ func main() {
 		exitln("No methods to generate; -io=false && -marshal=false")
 	}
 
-	if err := Run(*file, mode, *unexported); err != nil {
+	if err := Run(*file, mode, *unexported, *useJSONTag); err != nil {
 		exitln(err.Error())
 	}
 }
@@ -97,12 +98,12 @@ func main() {
 // Run writes all methods using the associated file or path, e.g.
 //
 //	err := msgp.Run("path/to/myfile.go", gen.Size|gen.Marshal|gen.Unmarshal|gen.Test, false)
-func Run(gofile string, mode gen.Method, unexported bool) error {
+func Run(gofile string, mode gen.Method, unexported, useJSONTag bool) error {
 	if mode&^gen.Test == 0 {
 		return nil
 	}
 	diagf("Input: \"%s\"\n", gofile)
-	fs, err := parse.File(gofile, unexported)
+	fs, err := parse.File(gofile, unexported, useJSONTag)
 	if err != nil {
 		return err
 	}

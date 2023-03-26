@@ -21,6 +21,7 @@ type FileSet struct {
 	Identities map[string]gen.Elem // processed from specs
 	Directives []string            // raw preprocessor directives
 	Imports    []*ast.ImportSpec   // imports
+	UseJSONTag bool                // use json tag if both "msg" and "msgpack" not available
 }
 
 // File parses a file at the relative path
@@ -29,12 +30,13 @@ type FileSet struct {
 // directory will be parsed.
 // If unexport is false, only exported identifiers are included in the FileSet.
 // If the resulting FileSet would be empty, an error is returned.
-func File(name string, unexported bool) (*FileSet, error) {
+func File(name string, unexported, useJSONTag bool) (*FileSet, error) {
 	pushstate(name)
 	defer popstate()
 	fs := &FileSet{
 		Specs:      make(map[string]ast.Expr),
 		Identities: make(map[string]gen.Elem),
+		UseJSONTag: useJSONTag,
 	}
 
 	fset := token.NewFileSet()
@@ -332,6 +334,9 @@ func (fs *FileSet) getField(f *ast.Field) []gen.StructField {
 		body := reflect.StructTag(strings.Trim(f.Tag.Value, "`")).Get("msg")
 		if body == "" {
 			body = reflect.StructTag(strings.Trim(f.Tag.Value, "`")).Get("msgpack")
+		}
+		if body == "" && fs.UseJSONTag {
+			body = reflect.StructTag(strings.Trim(f.Tag.Value, "`")).Get("json")
 		}
 		tags := strings.Split(body, ",")
 		if len(tags) >= 2 {
